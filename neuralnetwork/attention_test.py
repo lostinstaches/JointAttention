@@ -1,26 +1,16 @@
 import argparse
-import optparse
 
 import torch
-from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
 from test_dataloader import TestDataset
-from data_loader import AttentionDataset, pd
-from sklearn.metrics import ConfusionMatrixDisplay, multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix
 import os
 
 import random
 import numpy as np
 
-import pickle
-import io
-import copy
-
 import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
-import torchvision.transforms as transforms
-import PIL.Image
 from modelli import MLP, CNN, MLP_CNN
 
 

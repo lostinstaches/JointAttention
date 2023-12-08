@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 # Parent directory containing all patient folders
-parent_directory = '/Users/lostinstaches/Desktop/Patients'
+parent_directory = '/../data/patients'
 
 # Initialize an empty DataFrame to store all data
 merged_data = pd.DataFrame()

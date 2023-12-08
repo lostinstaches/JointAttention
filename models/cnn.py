@@ -11,7 +11,8 @@ class CNN(nn.Module):
         self.output_size = output_size
         self.criterion_gaze = nn.CrossEntropyLoss()
         self.efficientnet = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b0', pretrained=True)
-        self.efficientnet.eval().to(torch.device("cuda"))
+        # self.efficientnet.eval().to(torch.device("cuda"))
+        self.efficientnet.eval().to('cpu')
 
         self.avg_pool = nn.Sequential(
             nn.Flatten(),
@@ -31,13 +32,20 @@ class CNN(nn.Module):
 
     def predict(self, x):
         """Prediction function to generate one-hot encoded output"""
+        # x_pred = self.forward(x)
+        # x_final = torch.zeros(self.output_size)
+        # x_final[torch.argmax(x_pred)] = 1
+        # return x_final
         x_pred = self.forward(x)
-        x_final = torch.zeros(self.output_size)
-        x_final[torch.argmax(x_pred)] = 1
-        return x_final
+        # Get the index of the max logit.
+        # torch.argmax will return the index of the maximum value in each row of x_pred
+        predicted_classes = torch.argmax(x_pred, dim=1)
+
+        return predicted_classes
 
     def loss(self, x, y):
         """Calculates the loss given input x and true labels y"""
         y_pred = self.forward(x)
         y_true = y
+        y_true = y_true.squeeze(1)
         return self.criterion_gaze(y_pred, y_true)

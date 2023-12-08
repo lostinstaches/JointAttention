@@ -2,6 +2,15 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pickle
+import os
+from datetime import datetime
+
+# Generate a timestamp
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+# Create a new directory for the timestamped data
+pickle_directory = f'../data/pickles/{timestamp}'
+os.makedirs(pickle_directory, exist_ok=True)
 
 # Load data from files
 input_data = pd.read_csv('../data/input.csv', sep=" ", header=None)
@@ -11,6 +20,25 @@ labels = pd.read_csv('../data/labels.csv')
 print("Shape of input data is:" + str(input_data.shape))
 print("Shape of images data is:" + str(images.shape))
 print("Shape of labels data is:" + str(labels.shape))
+
+# Identify entries with label -1
+invalid_label_indices = labels[labels.iloc[:, 0] == -1].index
+
+# Remove these entries from input_data, images, and labels
+input_data = input_data.drop(invalid_label_indices).reset_index(drop=True)
+images = np.delete(images, invalid_label_indices, axis=0)
+labels = labels.drop(invalid_label_indices).reset_index(drop=True)
+
+print("Shape of input data is:" + str(input_data.shape))
+print("Shape of images data is:" + str(images.shape))
+print("Shape of labels data is:" + str(labels.shape))
+
+print(labels)
+
+# Count the number of entries for each label
+label_counts = labels.iloc[:, 0].value_counts()
+print("Label counts:")
+print(label_counts)
 
 # Verify that all datasets have the same number of entries
 assert len(input_data) == len(images) == len(labels), "Datasets must have the same number of entries"
@@ -36,9 +64,9 @@ test_input, test_images, test_labels = extract_subset(test_indices, input_data, 
 
 # Save subsets to pickle files
 def save_to_pickle(data, filename):
-    with open(filename, 'wb') as file:
+    with open(os.path.join(pickle_directory, filename), 'wb') as file:
         pickle.dump(data, file)
 
-save_to_pickle((train_input, train_images, train_labels), '../data/pickles/train.pkl')
-save_to_pickle((val_input, val_images, val_labels), '../data/pickles/val.pkl')
-save_to_pickle((test_input, test_images, test_labels), '../data/pickles/test.pkl')
+save_to_pickle((train_input, train_images, train_labels), 'train.pkl')
+save_to_pickle((val_input, val_images, val_labels), 'val.pkl')
+save_to_pickle((test_input, test_images, test_labels), 'test.pkl')

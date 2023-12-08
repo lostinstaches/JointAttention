@@ -17,7 +17,9 @@ class MLP(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 256),
             nn.ReLU(),
-            nn.Linear(256, 128),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, 128),
             nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
@@ -31,13 +33,19 @@ class MLP(nn.Module):
         return self.layers(x)
 
     def predict(self, x):
-        """Prediction function to generate one-hot encoded output"""
-        x_pred = self.forward(x)
-        x_final = torch.zeros(self.output_size)
-        x_final[torch.argmax(x_pred)] = 1
-        return x_final
+        """Prediction function to generate predicted class labels"""
+        with torch.no_grad():
+            logits = self.forward(x)
+            predicted_classes = torch.argmax(logits, dim=1)
+        return predicted_classes
 
     def loss(self, x, y):
-        """Calculates the loss given input x and true labels y"""
+        # """Calculates the loss given input x and true labels y"""
         y_pred = self.forward(x)
         return self.criterion_gaze(y_pred, y.squeeze(dim=1))
+
+        # y_pred = self.forward(x)
+        # ytrue = ((y == 1).nonzero(as_tuple=True)[1])
+        # loss = self.criterion_gaze(y_pred, ytrue)
+        # loss = self.criterion_gaze(y_pred, y)
+        # return loss

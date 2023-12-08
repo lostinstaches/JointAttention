@@ -3,7 +3,7 @@ import os
 import imageio
 import numpy as np
 
-parent_dir = '/Users/lostinstaches/Desktop/Patients' # LOOK HERE
+parent_dir = '/../data/patients'
 for patient_folder in os.listdir(parent_dir):
     # print(patient_folder)
     patient_path = os.path.join(parent_dir, patient_folder)
