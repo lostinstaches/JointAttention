@@ -11,7 +11,7 @@ class MLP_CNN(nn.Module):
         self.criterion_all = nn.CrossEntropyLoss()
         self.model_mlp = model_mlp
         self.model_cnn = model_cnn
-        self.avg_pool = nn.Linear(12, output_size)
+        self.avg_pool = nn.Linear(14, output_size)
 
     def forward(self, x):
         """
@@ -38,5 +38,10 @@ class MLP_CNN(nn.Module):
         Calculates the loss given input x and true labels y.
         """
         y_pred = self.forward(x)
-        y_true = ((y == 1).nonzero(as_tuple=True)[1])
+        print(f"y_pred shape: {y_pred.shape}, y shape: {y.shape}")
+
+        # Assuming y is one-hot encoded and needs conversion to class labels
+        y_true = torch.argmax(y, dim=1) if y.dim() > 1 else y.squeeze(1)
+        print(f"y_true shape after processing: {y_true.shape}")
+
         return self.criterion_all(y_pred, y_true)
