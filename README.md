@@ -42,3 +42,22 @@ The MLP_CNN_Attention model is designed for a complex classification task involv
 
 ## Conclusion
 The MLP_CNN_Attention model shows promise in its task but raises questions about its high performance metrics. Future efforts should focus on dataset expansion, model adjustment, and rigorous validation techniques to ensure reliability and generalizability in real-world scenarios.
+
+### Running the Model on New Data
+
+To evaluate the MLP_CNN_Attention model on new data, follow these steps:
+
+1. **Prepare the Data**:
+   - Place the following files in the `data/dataset` directory:
+     - `data.csv`: Ensure this file contains 15 columns. The last five columns should include four flags (`robot_patient`, `robot_therapist`, `no_robot_patient`, `no_robot_therapist`) and a numerical column (`ID` of the experiment).
+     - `images.npy`: This should be a numpy array of images.
+     - `labels.csv`: This file should contain the labels for your data.
+   
+2. **Data Preprocessing**:
+   - Run the `preprocessing/prepare_dataset.py` script. This script processes the data and generates pickle files in the appropriate format for the model.
+
+3. **Model Evaluation**:
+   - Use the `evaluate_on_new_data` method in the `training/attention_training.py` script. This script will train the model on your dataset.
+   - Use the `evaluate_on_new_data` method within the script to apply the pre-computed weights of the model to your new dataset.
+
+By following these steps, the MLP_CNN_Attention model will be able to process and evaluate your new dataset, giving you insights based on the learned patterns from the training process.
