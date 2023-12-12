@@ -1,8 +1,6 @@
 # JointAttention
 The Neuroengineering project for the master's course at Politecnico di Milano. 
 
-# Project Overview: MLP_CNN_Attention Model
-
 ## Objective
 
 The MLP_CNN_Attention model is designed for a complex classification task involving both numerical data and images. It predicts where a person is looking based on their posture and gaze direction in various settings, including interactions with therapists and robots.
