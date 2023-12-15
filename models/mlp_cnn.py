@@ -38,10 +38,5 @@ class MLP_CNN(nn.Module):
         Calculates the loss given input x and true labels y.
         """
         y_pred = self.forward(x)
-        print(f"y_pred shape: {y_pred.shape}, y shape: {y.shape}")
-
-        # Assuming y is one-hot encoded and needs conversion to class labels
-        y_true = torch.argmax(y, dim=1) if y.dim() > 1 else y.squeeze(1)
-        print(f"y_true shape after processing: {y_true.shape}")
-
+        y_true = y.squeeze(1)
         return self.criterion_all(y_pred, y_true)

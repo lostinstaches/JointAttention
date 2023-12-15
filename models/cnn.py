@@ -30,6 +30,16 @@ class CNN(nn.Module):
         y = self.avg_pool(pre_x_new)
         return y
 
+    def extract_features(self, x):
+        # Pass input through EfficientNet
+        features = self.efficientnet(x)
+        features_detached = features.detach()  # Detach features to prevent gradients
+
+        # Process features through all avg_pool layers except the last one
+        for layer in self.avg_pool[:-1]:
+            features_detached = layer(features_detached)
+        return features_detached
+
     def predict(self, x):
         """Prediction function to generate one-hot encoded output"""
         # x_pred = self.forward(x)

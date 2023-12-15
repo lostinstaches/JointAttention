@@ -15,6 +15,10 @@ import pickle
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import multilabel_confusion_matrix
+import datetime
 
 
 def plot(epochs, plottable, ylabel='', name=''):
@@ -70,6 +74,7 @@ def model_cnn_attention_run(data_loader, log_writer, opt, paths, model_name):
 
     # Initialize optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=opt.learning_rate, weight_decay=opt.l2_decay)
+
 
     # Pre-Training embeddings
     train(model, optimizer, data_loader['train'], data_loader['val'], opt, log_writer['train'], log_writer['val'], model_name)
@@ -142,6 +147,14 @@ def model_run_with_attention(data_loader, log_writer, opt, paths, model_name, mo
     model.load_state_dict(torch.load(paths['checkpoint_full_with_attention']))
     model.eval()
 
+def print_label_distribution(dataset, dataset_name):
+    # Extract labels from the dataset
+    labels = [label.numpy() for _, _, label in dataset]
+
+    # Calculate and print the distribution of labels
+    unique, counts = np.unique(np.argmax(labels, axis=1), return_counts=True)
+    print(f"Label Distribution in loaded {dataset_name} dataset: {dict(zip(unique, counts))}")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-data', default='data.pkl',
@@ -189,17 +202,22 @@ def main():
     test_dataset = load_data(os.path.join(latest_dir, 'test.pkl'))
     validation_dataset = load_data(os.path.join(latest_dir, 'val.pkl'))
 
+    # Print label distributions
+    print_label_distribution(train_dataset, "train")
+    print_label_distribution(test_dataset, "test")
+    print_label_distribution(validation_dataset, "val")
+
     data_loader = {
         'train': DataLoader(train_dataset, batch_size=40, shuffle=True),
-        'test': DataLoader(test_dataset, batch_size=40),
-        'val': DataLoader(validation_dataset, batch_size=40, shuffle=True),
+        'test': DataLoader(test_dataset, batch_size=20),
+        'val': DataLoader(validation_dataset, batch_size=40),
     }
 
     from datetime import datetime
     now = datetime.now()
     #
-    # model_name = 'MLP_ATTENTION'
     model_name = 'MLP_ATTENTION'
+    # model_name = 'ALL'
 
     log_writer = {
         'train': SummaryWriter(log_dir='./run_new/' + model_name + '/train/' + now.strftime("%Y-%m-%d-%H-%M-%S"),
@@ -210,6 +228,9 @@ def main():
                              comment='val' + '_' + model_name),
     }
 
+    dummy_input_mlp = torch.randn(1, 14)  # Replace 14 with the actual input size of the MLP
+    dummy_input_cnn = torch.randn(1, 3, 120, 100)  # Replace with the actual input size of the CNN
+
     if model_name == 'MLP':
         opt.startiter = 0
         model_mlp_run(data_loader, log_writer, opt, paths, model_name)
@@ -219,30 +240,35 @@ def main():
         model_cnn_run(data_loader, log_writer, opt, paths, model_name)
     elif model_name == 'ALL':
         opt.startiter = 0
-        opt.epochs = 150
+        opt.epochs = 50
         # opt.epochs = 1
         model_train_mlp = model_mlp_run(data_loader, log_writer, opt, paths, 'MLP')
-        opt.startiter = 150
-        opt.epochs = 20
+        opt.startiter = 50
+        opt.epochs = 5
         # opt.epochs = 1
         model_train_cnn = model_cnn_run(data_loader, log_writer, opt, paths, 'CNN')
-        opt.startiter = 170
+        opt.startiter = 55
         # opt.epochs = 1
-        opt.epochs = 15
+        opt.epochs = 5
         model_run(data_loader, log_writer, opt, paths, model_name, model_train_mlp, model_train_cnn)
     elif model_name == 'MLP_ATTENTION':
         opt.startiter = 0
-        opt.epochs = 250
+        opt.epochs = 100
         # opt.epochs = 1
         model_train_mlp = model_mlp_run(data_loader, log_writer, opt, paths, 'MLP')
-        opt.startiter = 250
-        opt.epochs = 1
+        opt.startiter = 100
+        opt.epochs = 25
         # opt.epochs = 1
         model_train_cnn_with_attention = model_cnn_attention_run(data_loader, log_writer, opt, paths, 'Attention')
-        opt.startiter = 251
+        opt.startiter = 125
         # opt.epochs = 1
-        opt.epochs = 1
+        opt.epochs = 5
         model_run_with_attention(data_loader, log_writer, opt, paths, model_name, model_train_mlp, model_train_cnn_with_attention)
+        # model_train_cnn = model_cnn_run(data_loader, log_writer, opt, paths, 'CNN')
+        # opt.startiter = 125
+        # # opt.epochs = 1
+        # opt.epochs = 25
+        # model_run_with_attention(data_loader, log_writer, opt, paths, model_name, model_train_mlp, model_train_cnn)
 
         print("Testing")
         model_weights_path = './weights/checkpoint3_final_attention.pt'
@@ -262,6 +288,10 @@ def load_data(pickle_file):
         gaze_data = gaze_data.to_numpy()
     if isinstance(labels, pd.DataFrame):
         labels = labels.to_numpy()
+
+    # Correct label distribution calculation
+    unique, counts = np.unique(labels, return_counts=True)
+    print(f"Label Distribution in {pickle_file}: {dict(zip(unique, counts))}")
 
     # Assuming image_data is already a NumPy array as per your print statement
     return TensorDataset(torch.tensor(gaze_data, dtype=torch.float32),
@@ -290,16 +320,16 @@ def validation_metric(y, y_pred):
     acc = np.mean((y[0] == y_pred).all())
     return acc
 
+from sklearn.metrics import confusion_matrix
 
-def precision_metric(y_pred, y):
+from sklearn.metrics import precision_score
+
+def precision_metric_old(y_pred, y):
     y_pred = torch.cat(y_pred)
-    # print("Shape of concatenated y_pred:", y_pred.shape)
     y_pred = torch.reshape(y_pred, (-1, 7))
-    # print("Shape of y_pred after reshaping:", y_pred.shape)
 
     # Concatenate all the true label tensors
     y = torch.cat(y)
-    # print("Shape of concatenated true labels (y):", y.shape)
 
     # Convert to numpy arrays for further processing
     y = y.cpu().detach().numpy()
@@ -308,12 +338,11 @@ def precision_metric(y_pred, y):
     # Convert probabilities to predicted class labels
     y_pred_labels = np.argmax(y_pred, axis=1)
     y_true_labels = np.argmax(y, axis=1)
-    # print("Predicted labels:", y_pred_labels)
-    # print("True labels:", y_true_labels)
 
     # Calculate confusion matrix
-    conf_mat = multilabel_confusion_matrix(y_true_labels, y_pred_labels, labels=[0, 1, 2, 3, 4, 5, 6])
-    # print("Confusion matrix:\n", conf_mat)
+    # conf_mat = multilabel_confusion_matrix(y_true_labels, y_pred_labels, labels=[0, 1, 2, 3, 4, 5, 6])
+    conf_mat = confusion_matrix(y_true_labels, y_pred_labels)
+    plot_confusion(conf_mat)
 
     # Calculate precision and accuracy
     sumconf = np.sum(conf_mat, axis=0)
@@ -322,6 +351,50 @@ def precision_metric(y_pred, y):
     accuracy = (sumconf[0, 0] + sumconf[1, 1]) / (sumconf[0, 0] + sumconf[1, 0] + sumconf[1, 1] + sumconf[0, 1])
     return precision, accuracy
 
+def precision_metric(y_pred, y):
+    # Concatenate and reshape predicted label tensors
+    y_pred = torch.cat(y_pred)
+    y_pred = torch.reshape(y_pred, (-1, 7))
+
+    # Concatenate all the true label tensors
+    y = torch.cat(y)
+
+    # Convert to numpy arrays for further processing
+    y = y.cpu().detach().numpy()
+    y_pred = y_pred.cpu().detach().numpy()
+
+    # Convert probabilities to predicted class labels
+    y_pred_labels = np.argmax(y_pred, axis=1)
+    y_true_labels = y.squeeze()  # Assuming y is a 2D array of shape (n_samples, 1)
+
+    # Print unique predicted labels
+    unique_pred_labels = np.unique(y_pred_labels)
+    print(f"Unique Predicted Labels: {unique_pred_labels}")
+
+    # Calculate confusion matrix and plot it
+    conf_mat = confusion_matrix(y_true_labels, y_pred_labels)
+    plot_confusion(conf_mat)
+
+    # Calculate precision and accuracy
+    precision = precision_score(y_true_labels, y_pred_labels, average='macro', labels=np.arange(7), zero_division=0)
+    accuracy = accuracy_score(y_true_labels, y_pred_labels)
+
+    return precision, accuracy
+
+def plot_confusion(conf_mat):
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(conf_mat, annot=True, fmt='g', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted labels')
+    plt.ylabel('True labels')
+
+    # Get current time for the timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    filename = f'confusion_matrix_class_{timestamp}.png'
+
+    # Save the figure
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
 
 from sklearn.metrics import precision_score, accuracy_score
 
@@ -361,7 +434,15 @@ def train_batch(x, y, model, optimizer):
 def train(model, optimizer, train_dataloader, dev_dataloader, opt, train_writer, val_writer, model_name,
           requires_reset=False, viz=True):
     train_mean_losses = []
+    y_train_pred_all = []
+    y_train_true_all = []
+    train_accuracies = []
+    train_precisions = []
+
     val_mean_metrics = []
+    epoch_accuracies = []
+    epoch_precisions = []
+    epoch_conf_matrices = []
 
     # Run the training loop
     for epoch in range(0, opt.epochs):
@@ -388,12 +469,32 @@ def train(model, optimizer, train_dataloader, dev_dataloader, opt, train_writer,
             else:
                 print("We should not be here")
 
+                # For calculating training accuracy and precision
+            with torch.no_grad():
+                if model_name in ['MLP', 'CNN', 'Attention']:
+                    y_pred = model(gaze if model_name == 'MLP' else immagine)
+                else:
+                    y_pred = model([gaze, immagine])
+
+                probabilities = torch.softmax(y_pred, dim=1)
+                y_train_pred_all.append(probabilities)
+                y_train_true_all.append(output)
+
             train_losses.append(loss)
 
         mean_loss = torch.tensor(train_losses).mean().item()
         print('Training loss: %.4f' % mean_loss)
         train_writer.add_scalar('loss', mean_loss, global_step=opt.startiter + epoch)
         train_mean_losses.append(mean_loss)
+
+        # Calculate training accuracy and precision
+        train_accuracy, train_precision = precision_metric(y_train_pred_all, y_train_true_all)
+        train_accuracies.append(train_accuracy)
+        train_precisions.append(train_precision)
+
+        # Print training metrics
+        print(
+            f'Epoch {epoch + 1}, Training Loss: {mean_loss:.4f}, Accuracy: {train_accuracy:.4f}, Precision: {train_precision:.4f}')
 
         # Start validation
         model.eval()
@@ -408,8 +509,8 @@ def train(model, optimizer, train_dataloader, dev_dataloader, opt, train_writer,
                 immagine = immagine.transpose(1, 3).transpose(2, 3)
                 gaze, immagine, output = gaze.to('cpu'), immagine.to('cpu'), output.to('cpu')
 
-                if batch_count == 0:
-                    print(f"Batch shapes - Gaze: {gaze.shape}, Image: {immagine.shape}, Output: {output.shape}")
+                # if batch_count == 0:
+                #     print(f"Batch shapes - Gaze: {gaze.shape}, Image: {immagine.shape}, Output: {output.shape}")
 
                 if model_name == 'MLP':
                     y_pred = model(gaze)
@@ -430,10 +531,16 @@ def train(model, optimizer, train_dataloader, dev_dataloader, opt, train_writer,
 
             # Calculate overall validation metrics
             precision, accuracy = precision_metric(y_pred_all, y_true_all)
+            epoch_accuracies.append(accuracy)
+            epoch_precisions.append(precision)
             print(
                 f'Epoch {epoch + 1}, Validation - Batches Processed: {batch_count}, Accuracy: {accuracy:.4f}, Precision: {precision:.4f}')
             val_writer.add_scalar('metric', accuracy, global_step=opt.startiter + epoch)
             val_mean_metrics.append(accuracy)
+            if epoch == opt.epochs - 1:
+                y_true_labels = np.concatenate([y.numpy() for y in y_true_all])
+                y_pred_labels = np.concatenate([np.argmax(y_pred.numpy(), axis=1) for y_pred in y_pred_all])
+                epoch_conf_matrices.append(confusion_matrix(y_true_labels, y_pred_labels))
 
         # Reset model to training mode
         model.train()
@@ -443,6 +550,9 @@ def train(model, optimizer, train_dataloader, dev_dataloader, opt, train_writer,
     plot(str_epochs, train_mean_losses, ylabel='Loss', name='training-loss')
 
     print('Training process has finished.')
+    print('Epoch Accuracies:', epoch_accuracies)
+    print('Epoch Precisions:', epoch_precisions)
+    print('Confusion Matrix for Last Epoch:', epoch_conf_matrices[-1])
 
 
 def train_old(model, optimizer, train_dataloader, dev_dataloader, opt, train_writer, val_writer, model_name,

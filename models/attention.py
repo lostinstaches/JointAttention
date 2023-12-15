@@ -2,29 +2,6 @@ import torch
 from torch import nn
 from efficientnet_pytorch import EfficientNet
 
-# class ChannelAttention(nn.Module):
-#     def __init__(self, num_channels, reduction_ratio=16):
-#         super().__init__()
-#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-#         self.max_pool = nn.AdaptiveMaxPool2d(1)
-#         self.fc = nn.Sequential(
-#             nn.Linear(num_channels, num_channels // reduction_ratio, bias=False),
-#             nn.ReLU(),
-#             nn.Linear(num_channels // reduction_ratio, num_channels, bias=False),
-#             nn.Sigmoid()
-#         )
-#
-#     def forward(self, x):
-#         # Ensure tensor has at least 3 dimensions
-#         if x.ndim < 3:
-#             raise ValueError("Input tensor to ChannelAttention must have at least 3 dimensions")
-#
-#         avg_out = self.fc(self.avg_pool(x).squeeze(-1).squeeze(-1))
-#         max_out = self.fc(self.max_pool(x).squeeze(-1).squeeze(-1))
-#         out = avg_out + max_out
-#         return x * out.unsqueeze(2).unsqueeze(3)
-
-
 class ChannelAttention1D(nn.Module):
     def __init__(self, num_channels, reduction_ratio=16):
         super().__init__()
@@ -47,21 +24,36 @@ class CNN_Attention(nn.Module):
     def __init__(self, output_size):
         super().__init__()
         self.output_size = output_size
-        self.criterion_gaze = nn.CrossEntropyLoss()
+        # Using a larger pre-trained model
         self.efficientnet = EfficientNet.from_pretrained('efficientnet-b0')
+        self.criterion_gaze = nn.CrossEntropyLoss()
+
         num_features = self.efficientnet._fc.in_features
         self.efficientnet._fc = nn.Identity()  # Remove the final FC layer
 
-        # self.channel_attention = ChannelAttention(num_channels=num_features)
         self.channel_attention = ChannelAttention1D(num_channels=num_features)
+        # Freeze all layers in EfficientNet
+        for param in self.efficientnet.parameters():
+            param.requires_grad = False
 
+        # Unfreeze the last few layers
+        for layer in list(self.efficientnet.children())[-1:]:
+            for param in layer.parameters():
+                param.requires_grad = True
+
+        # Possibly add more layers or more complex structures here
         self.avg_pool = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(num_features, 500),
-            nn.ReLU(),
-            nn.Linear(500, 32),
-            nn.ReLU(),
-            nn.Linear(32, output_size)
+
+            nn.Linear(num_features, 1024),  # Increased size
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0.2),  # Dropout to prevent overfitting
+            nn.Linear(1024, 128),
+            nn.BatchNorm1d(128),
+            nn.LeakyReLU(0.1),
+
+            # Final output layer
+            nn.Linear(128, output_size)
         )
 
     def forward(self, x):
@@ -74,6 +66,11 @@ class CNN_Attention(nn.Module):
         x_pred = self.forward(x)
         predicted_classes = torch.argmax(x_pred, dim=1)
         return predicted_classes
+
+    def extract_features(self, x):
+        features = self.efficientnet(x)
+        attended_features = self.channel_attention(features)
+        return attended_features
 
     def loss(self, x, y):
         y_pred = self.forward(x)
