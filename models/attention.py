@@ -25,7 +25,7 @@ class CNN_Attention(nn.Module):
         super().__init__()
         self.output_size = output_size
         # Using a larger pre-trained model
-        self.efficientnet = EfficientNet.from_pretrained('efficientnet-b0')
+        self.efficientnet = EfficientNet.from_pretrained('efficientnet-b3')
         self.criterion_gaze = nn.CrossEntropyLoss()
 
         num_features = self.efficientnet._fc.in_features
@@ -44,15 +44,12 @@ class CNN_Attention(nn.Module):
         # Possibly add more layers or more complex structures here
         self.avg_pool = nn.Sequential(
             nn.Flatten(),
-
             nn.Linear(num_features, 1024),  # Increased size
-            nn.LeakyReLU(0.1),
-            nn.Dropout(0.2),  # Dropout to prevent overfitting
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(0.5),  # Dropout to prevent overfitting
             nn.Linear(1024, 128),
-            nn.BatchNorm1d(128),
-            nn.LeakyReLU(0.1),
-
-            # Final output layer
+            nn.ReLU(),
             nn.Linear(128, output_size)
         )
 

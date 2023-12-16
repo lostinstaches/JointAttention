@@ -18,6 +18,7 @@ efficientnet-pytorch = "^0.7.1"
 tqdm = "^4.66.1"
 matplotlib = "^3.8.2"
 tensorboardx = "^2.6.2.2"
+seaborn = "^0.13.0"
 
 
 [build-system]

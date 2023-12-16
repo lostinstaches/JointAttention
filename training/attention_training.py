@@ -253,16 +253,16 @@ def main():
         model_run(data_loader, log_writer, opt, paths, model_name, model_train_mlp, model_train_cnn)
     elif model_name == 'MLP_ATTENTION':
         opt.startiter = 0
-        opt.epochs = 100
+        opt.epochs = 120
         # opt.epochs = 1
         model_train_mlp = model_mlp_run(data_loader, log_writer, opt, paths, 'MLP')
-        opt.startiter = 100
-        opt.epochs = 25
+        opt.startiter = 120
+        opt.epochs = 20
         # opt.epochs = 1
         model_train_cnn_with_attention = model_cnn_attention_run(data_loader, log_writer, opt, paths, 'Attention')
-        opt.startiter = 125
+        opt.startiter = 140
         # opt.epochs = 1
-        opt.epochs = 5
+        opt.epochs = 20
         model_run_with_attention(data_loader, log_writer, opt, paths, model_name, model_train_mlp, model_train_cnn_with_attention)
         # model_train_cnn = model_cnn_run(data_loader, log_writer, opt, paths, 'CNN')
         # opt.startiter = 125
