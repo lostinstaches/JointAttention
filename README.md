@@ -1,7 +1,7 @@
+
+
 # JointAttention
 The Neuroengineering project for the master's course at Politecnico di Milano. 
-
-# Project Overview: MLP_CNN_Attention Model
 
 ## Objective
 
@@ -11,37 +11,40 @@ The MLP_CNN_Attention model is designed for a complex classification task involv
 - **Dataset Size**: 4009 entries
 - **Composition**:
   - **Numerical Data**: 14 columns representing topological positions of joints and experiment flags.
-  - **Images**: Size 120x100, featuring patients and therapists.
+  - **Images**: Size 120x100, featuring patients and therapists. (Includes some images of walls and robots not directly relevant to the task.)
 - **Diversity**: Approximately 20 different pairs of therapists and patients, with varying settings.
+- **Post-Augmentation Dataset Size**: Increased to 5597 entries.
+- **Potential Improvement**: Future work could focus on refining the dataset, possibly by removing irrelevant entries like robot faces.
 
 ## Model Architecture
 - **MLP Component**: Processes the numerical data with multiple layers, batch normalization, ReLU activation, and dropout.
-- **CNN Component with Attention**: Processes images using a pre-trained EfficientNet and an added attention mechanism.
-- **Integration**: Combines outputs of MLP and CNN components through a final linear layer.
+- **CNN Component with Attention**: Processes images using a pre-trained EfficientNet, with all layers frozen except the last, to leverage its pre-trained capabilities on a limited dataset, and an added attention mechanism.
+- **Integration**: Combines the penultimate layers of MLP and CNN components through a few additional layers.
 
 ## Training Process
 - **Split Ratio**: Latest split - 60% training, 20% test, 20% validation.
 - **Epochs**: 50 for MLP, 5 for CNN, and 5 for the combined model.
 - **Optimizer**: Adam with a learning rate of 0.001 and L2 regularization.
+- **Data Processing**:
+  - **Numerical Data**: Normalization of values by computing mean and variance for each column.
+  - **Images**: Normalized to have values between 0 and 1.
+- **Data Augmentation**:
+  - Addressed unbalanced dataset issues, particularly for labels 1, 4, 3, 5.
+  - Aimed to have 600 entries for each underrepresented label through color and noise addition to images.
+  - Randomly adjusted numerical data to enhance variability.
 - **Loss Function**: CrossEntropyLoss for each component.
 
+## Metrics
+-- Achieved an accuracy of 56% and precision of 52% on test data, slightly higher on validation and training sets.
+
 ## Observations and Concerns
-- **Data Overfitting**: The model might be too complex for the data size, learning to memorize rather than generalize. However, it is hard to judge as it also performs well on unseen data.
-- **Data Homogeneity**: Lack of variability in data might make it easy for the model to predict.
-- **Small Dataset Size**: A larger dataset might present more challenges and diverse scenarios.
-- **Pre-trained CNN Influence**: The use of a powerful pre-trained network may contribute to high performance on a potentially simple dataset.
-- **Evaluation Methodology**: The way the validation and test sets are used or the metric calculations might be inflating performance figures.
+- **Data Quality**: The presence of irrelevant images and data points affects model performance.
+- **Data Processing**: Opportunities exist to refine data processing techniques.
+- **Model Complexity and Integration**: Adjustments to the model's integration layer and reliance on a pre-trained CNN indicate potential for further experimentation.
 - **Label Distribution**: If certain labels dominate the dataset, the model might be biased towards predicting them.
 
-## Future Directions
-- **Data Expansion**: More data in varied locations with a diverse range of individuals.
-- **Model Complexity**: Assess and potentially simplify the model to match dataset complexity.
-- **Data Augmentation**: Implement techniques to increase dataset variability.
-- **Cross-Validation**: Ensure model generalizability using cross-validation.
-- **Experimentation**: Test different architectures, including simpler models.
-
 ## Conclusion
-The MLP_CNN_Attention model shows promise in its task but raises questions about its high performance metrics. Future efforts should focus on dataset expansion, model adjustment, and rigorous validation techniques to ensure reliability and generalizability in real-world scenarios.
+While the MLP_CNN_Attention model demonstrates potential, its performance is currently limited by data quality and model complexity. Future efforts should concentrate on improving data quality, exploring data augmentation techniques, and experimenting with model architecture.
 
 ### Running the Model on New Data
 
